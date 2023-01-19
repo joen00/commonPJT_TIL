@@ -58,8 +58,8 @@ def get_nearest_face(name, top= 5):
     arr = ['0']*6
     
     for i in range(top+1):
-          if i == 0:
-              continue
+        #   if i == 0:
+        #       continue
           if sorted_faces[i]:
                 # print('{}: {}'.format(i,len(sorted_faces[i][0])))
                 # print('순위 {} : 이름({}), 거리({})'. format(i, sorted_faces[i][0], sort_key_func(sorted_faces[i][0])))
@@ -68,7 +68,7 @@ def get_nearest_face(name, top= 5):
 
 @app.route('/pp', methods=['GET'])
 def ajax():
-    ans = get_nearest_face('me2')
+    ans = get_nearest_face('team7')
     # print(ans)
     return {'answer': ans}
     
