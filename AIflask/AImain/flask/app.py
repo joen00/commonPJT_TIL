@@ -20,11 +20,11 @@ def getEmps():
     ret = []
     db = pymysql.connect(host='3.38.169.2', user='root', db='common_pjt', password='1234', charset='utf8')
     curs = db.cursor()
-    sql = "select img from imgai"
+    sql = "select member_id, img from imgai"
     curs.execute(sql)
     rows = curs.fetchall()
     for e in rows:
-        ret.append(e[0])
+        ret.append({"member_id" : e[0], "img" : e[1]})
     db.commit()
     db.close()
     return ret
@@ -50,19 +50,17 @@ def get_face_embedding_dict(dir_path):
 
     # DB에서 가져온 코드
     file_list = getEmps()
+    
     embedding_dict = {}
     
     for file in file_list:     
-        img_path = file
-
         try: 
-            face = get_cropped_face(img_path)    # 얼굴 영역만 자른 이미지
+            face = get_cropped_face(file["img"])    # 얼굴 영역만 자른 이미지
         except:                                  # 인식하지 못하는 이미지는 넘어감
             continue    
         embedding = get_face_embedding(face)   # 얼굴 영역에서 얼굴 임베딩 벡터를 추출
         if len(embedding) > 0:   # 얼굴 영역이 제대로 detect되지 않았을 경우를 대비
-                namearr = os.path.splitext(file)[0].split('/')
-                embedding_dict[namearr[-1]] = embedding[0]
+                embedding_dict[file["member_id"]] = embedding[0]
     return embedding_dict
 
 embedding_dict = get_face_embedding_dict(dir_path)
@@ -102,7 +100,7 @@ def getmakeup(meberId):
     sql = "select  m.member_id, m.title, content, m.img, m.duration, m.score, m.count from makeup m  "
     sql = sql + "join imgai i " 
     sql = sql + "on m.member_id = i.member_id "
-    sql = sql + "where m.member_id =%s "
+    sql = sql + "where m.member_id =%s and i.is_makeup = true "
     sql = sql + "ORDER BY m.count and m.score DESC limit 1"
     
     curs.execute(sql,[meberId])
@@ -123,10 +121,31 @@ def getmakeup(meberId):
     db.close()
     return temp
 
+
+def getisMember(meberId):
+    ret = []
+    db = pymysql.connect(host='3.38.169.2', user='root', db='common_pjt', password='1234', charset='utf8')
+    curs = db.cursor()
+    sql = "select member_id from imgai where member_id =%s "
+    curs.execute(sql,[meberId])
+    rows = curs.fetchall()
+    for e in rows:
+        ret.append(e[0])
+    print(ret)
+    db.commit()
+    db.close()
+    return ret
+
+
+
 @app.route('/recommand', methods=['POST'])
 def ajax():
-    ans = get_nearest_face(request.get_json()["id"])
     result = []
+    if(getisMember(request.get_json()["id"]) == []):
+        return {'answer': result } 
+    
+    ans = get_nearest_face(request.get_json()["id"])
+
     for arr in ans:
         if type(arr) is str : continue 
         ret = getmakeup(arr["name"])
@@ -136,4 +155,4 @@ def ajax():
     
 
 if __name__ == '__main__':
-    app.run(host='i8b306.p.ssafy.io', port=5000, threaded=False)
+    app.run(host='localhost', port=5000, threaded=False)
